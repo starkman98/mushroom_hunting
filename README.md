@@ -1,7 +1,8 @@
 Items from ox_inventory items.lua
 
+```
 return {
-  ['green_mushroom'] = {
+	['green_mushroom'] = {
 		label = 'Green Mushroom',
 		weight = 100,
 		stack = true,
@@ -21,3 +22,4 @@ return {
 		},
 	},
 }
+```
