@@ -1,9 +1,17 @@
-Config = {}
+MushroomConfig = {}
 
-Config.green = {
+MushroomConfig.green = {
+    name = "green",
     model = `prop_stoneshroom2`,
     item = "green_mushroom",
     maxSpawnedMushrooms = 20,
+    isInZone = false,
+    minStressLevel = 10,
+    damageOnLowStress = 5,
+    deStressChance = 30, -- percentage (of 100) chance to decrease stress
+    deStress = false,
+    breakChance = 50, -- percentage (of 100) chance to break
+    isBroken = false,
     spawnHeight = {
         min = 1,
         max = 1.35
@@ -70,10 +78,18 @@ Config.green = {
     }
 }
 
-Config.red ={
+MushroomConfig.red ={
+    name = "red",
     model = `prop_stoneshroom1`,
     item = "red_mushroom",
     maxSpawnedMushrooms = 25,
+    isInZone = false,
+    minStressLevel = 10,
+    damageOnLowStress = -5,
+    deStressChance = 40, -- percentage (of 100) chance to decrease stress
+    deStress = false,
+    breakChance = 80, -- percentage (of 100) chance to break
+    isBroken = false,
     spawnHeight = {
         min = 1,
         max = 1.2

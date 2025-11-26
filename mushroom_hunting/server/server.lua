@@ -1,8 +1,8 @@
-local active = { green = {}, red = {} }
-local cooldowns = { green = {}, red = {} }
+local active = {}
+local cooldowns = {}
 
 local function RandomFreeLocation(area)
-    local config = Config[area]
+    local config = MushroomConfig[area]
     local total = #config.spawnLocations
 
     local freeLocations = {}
@@ -20,7 +20,7 @@ local function RandomFreeLocation(area)
 end
 
 local function Spawn(area, index)
-    local config = Config[area]
+    local config = MushroomConfig[area]
     local model = config.model
 
     active[area][index] = true
@@ -28,7 +28,7 @@ local function Spawn(area, index)
 end
 
 local function StartCooldown(area, index)
-    local config = Config[area]
+    local config = MushroomConfig[area]
     local cooldownTime = math.random(config.cooldown.min, config.cooldown.max)
 
     cooldowns[area][index] = os.time() + cooldownTime
@@ -44,29 +44,39 @@ local function StartCooldown(area, index)
     end)
 end
 
-RegisterNetEvent('mushroom_hunting:pick', function(area, index)
-    local src = source
-    local config = Config[area]
-    
-    if not active[area][index] then return end
+RegisterNetEvent('mushroom_hunting:pick', function(area, index, deStress, isBroken)
+    local source = source
+    local config = MushroomConfig[area]
 
+    if not active[area][index] then return end
     active[area][index] = nil
-    
+
+    local stressConfig = exports.stress:getStressConfig()
+    local stressLoss = stressConfig.stress.decrease.mushroomPick
+    local stress = exports.stress:getStress(source)
+
+    if deStress and stress <= config.minStressLevel then
+        local damage = config.damageOnLowStress
+        TriggerClientEvent('mushroom_hunting:applyStressDamage', source, damage)
+    elseif deStress then
+        exports.stress:changeStress(source, -stressLoss)
+    end
+
     TriggerClientEvent('mushroom_hunting:despawn', -1, area, index)
 
-    exports.ox_inventory:AddItem(src, config.item, 1)
-
+    if not isBroken then
+        exports.ox_inventory:AddItem(source, config.item, 1)
+    end
 
     StartCooldown(area, index)
 end)
 
-RegisterNetEvent('mushroom_hunting:requestSync', function()
-    local src = source
+RegisterNetEvent('mushroom_hunting:requestSync', function(playerId)
     for area, group in pairs(active) do
         for index, exists in pairs(group) do
             if exists then
-                local cfg = Config[area]
-                TriggerClientEvent('mushroom_hunting:spawn', src, area, index, cfg.model)
+                local cfg = MushroomConfig[area]
+                TriggerClientEvent('mushroom_hunting:spawn', playerId, area, index, cfg.model)
             end
         end
     end
@@ -81,14 +91,29 @@ RegisterNetEvent('mushroom_hunting:deleteAll', function()
     end
 end)
 
+RegisterNetEvent('mushroom_hunting:despawnAll', function(playerId)
+    for area, group in pairs(active) do
+        for index, _ in pairs(group) do
+            active[area][index] = nil
+            TriggerClientEvent('mushroom_hunting:despawn', playerId, area, index)
+        end
+    end
+end)
+
 RegisterCommand('delmushrooms', function(src)
     TriggerEvent('mushroom_hunting:deleteAll')
 end, true)
 
 CreateThread(function()
     Wait(1000)
-    for _, area in pairs({"green", "red"}) do
-        local config = Config[area]
+    for area, config in pairs(MushroomConfig) do
+        if not active[area] then
+            active[area] = {}
+        end
+
+        if not cooldowns[area] then
+            cooldowns[area] = {}
+        end
 
         for i = 1, config.maxSpawnedMushrooms do
             local index = RandomFreeLocation(area)
